@@ -1,31 +1,51 @@
-import pyaudio
+import io
 from gtts import gTTS
-import os
+from pydub import AudioSegment
+from pydub.utils import which
 
-import subprocess
-import sys
+AudioSegment.converter = which("ffmpeg")
 
-class VB_Cable:
-    def __init__(self):
-        subprocess.run(
-            ["VBCABLE_Setup_x64.exe", "-i", "-h"],
-            check=True
-        )
 
-class TTS:
-    def __init__(self):
-        self.p = pyaudio.PyAudio()
+import sounddevice as sd
+import numpy as np
 
-    def generate(self, text: str, lang: str = 'en', speed: bool = False) -> bytes:
+class TTSMic:
+    def __init__(self, virtual_device_name="CABLE Input"):
+        self.virtual_device_name = virtual_device_name
+
+    def generate_audio(self, text: str, lang='en', speed=False) -> AudioSegment:
         tts = gTTS(text=text, lang=lang, slow=speed)
-        temp_file = "temp_audio.mp3"
-        tts.save(temp_file)
-        
-        with open(temp_file, "rb") as f:
-            audio_data = f.read()
-        
-        os.remove(temp_file)
-        return audio_data
-    
-    def play_audio(self, audio_data: bytes):
-        pass
+        mp3_fp = io.BytesIO()
+        tts.write_to_fp(mp3_fp)
+        mp3_fp.seek(0)
+        audio = AudioSegment.from_file(mp3_fp, format="mp3")
+        return audio
+
+    def play_audio(self, audio: AudioSegment, device_name=None):
+        import sounddevice as sd
+        import numpy as np
+
+        samples = np.array(audio.get_array_of_samples())
+        if audio.channels == 2:
+            samples = samples.reshape((-1, 2))
+        samples = samples.astype(np.float32) / (2 ** 15)
+
+        device_id = None
+        if device_name:
+            devices = sd.query_devices()
+            for i, dev in enumerate(devices):
+                if device_name.lower() in dev['name'].lower():
+                    device_id = i
+                    break
+        sd.play(samples, samplerate=audio.frame_rate, device=device_id)
+        sd.wait()
+
+    def play_to_virtual(self, audio: AudioSegment):
+        self.play_audio(audio, self.virtual_device_name)
+
+    def play_to_speakers(self, audio: AudioSegment):
+        self.play_audio(audio, device_name=None)
+
+    def play_to_both(self, audio: AudioSegment):
+        self.play_to_virtual(audio)
+        self.play_to_speakers(audio)
