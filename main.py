@@ -2,6 +2,7 @@ import io
 from gtts import gTTS
 from pydub import AudioSegment
 from pydub.utils import which
+import threading
 
 AudioSegment.converter = which("ffmpeg")
 
@@ -44,8 +45,8 @@ class TTSMic:
         self.play_audio(audio, self.virtual_device_name)
 
     def play_to_speakers(self, audio: AudioSegment):
-        self.play_audio(audio, device_name=None)
+        self.play_audio(audio, device_name="Realtek(R) Audio")
 
     def play_to_both(self, audio: AudioSegment):
-        self.play_to_virtual(audio)
-        self.play_to_speakers(audio)
+        threading.Thread(target=self.play_to_virtual, args=(audio,), daemon=True).start()
+        threading.Thread(target=self.play_to_speakers, args=(audio,), daemon=True).start()
