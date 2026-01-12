@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-from main import TTSMic
+from tts import TTSMic
 
 
 def button_click():

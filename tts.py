@@ -45,7 +45,9 @@ class TTSMic:
         self.play_audio(audio, self.virtual_device_name)
 
     def play_to_speakers(self, audio: AudioSegment):
-        self.play_audio(audio, device_name="Realtek(R) Audio")
+        default_output = sd.default.device[1]
+        device_info = sd.query_devices(default_output)
+        self.play_audio(audio, device_name=device_info['name'])
 
     def play_to_both(self, audio: AudioSegment):
         threading.Thread(target=self.play_to_virtual, args=(audio,), daemon=True).start()
