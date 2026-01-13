@@ -11,6 +11,12 @@ AudioSegment.converter = which("ffmpeg")
 import sounddevice as sd
 import numpy as np
 
+def warmup_librosa():
+    sr = 22050
+    y = np.zeros(sr, dtype=np.float32)
+    librosa.effects.pitch_shift(y, sr=sr, n_steps=0)
+
+warmup_librosa()
 
 def change_speed(audio: AudioSegment, speed: float) -> AudioSegment:
     speed = float(speed)
@@ -29,6 +35,9 @@ def change_speed(audio: AudioSegment, speed: float) -> AudioSegment:
     ).set_frame_rate(audio.frame_rate)
 
 def change_pitch(audio: AudioSegment, semitones: float) -> AudioSegment:
+    if semitones == 0:
+        return audio
+
     samples = np.array(audio.get_array_of_samples()).astype(np.float32)
     samples /= np.iinfo(audio.array_type).max
 
@@ -53,8 +62,6 @@ class TTSMic:
         mp3_fp.seek(0)
         audio = AudioSegment.from_file(mp3_fp, format="mp3")
 
-
-        print(type(speed))
         audio = change_speed(audio, speed)
         audio = change_pitch(audio, pitch)
 
