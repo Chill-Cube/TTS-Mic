@@ -1,7 +1,23 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from main import TTSMic
+from faster_whisper import WhisperModel
 
+from pydub import AudioSegment
+from pydub.playback import play
+import sounddevice as sd
+import soundfile as sf
+import os
+import threading
+
+fs = 44100
+channels = 1
+
+model_size = "medium"
+
+model = WhisperModel(model_size, device="cpu", compute_type="int8")
+recording = False
+text : str = None
 
 def button_click():
     text = entry_box.get()
@@ -22,9 +38,57 @@ def button_click():
     tts_mic.play_to_both(audio)
 
 
+def play_sound(path):
+    audio = AudioSegment.from_file(path)
+    play(audio)
+
+def record_audio():
+    global recording, text, stream, file
+    print("running")
+    if recording:
+        recording = False
+        entry_box.delete(0, tk.END)
+        entry_box.insert(0, "Wait a moment...")
+
+        stream.stop()
+        stream.close()
+        file.close()
+
+        segments, info = model.transcribe("input.wav", beam_size=5)
+        text = "".join(s.text for s in segments)
+
+        entry_box.delete(0, tk.END)
+        entry_box.insert(0, text)
+        button_click()
+    else:
+        sound_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "new-notification-010-352755.mp3")
+        threading.Thread(target=play_sound, args=(sound_path,), daemon=True).start()
+        recording = True     
+        entry_box.delete(0, tk.END)
+        entry_box.insert(0, "Recording...")
+
+        file = sf.SoundFile(
+            "input.wav",
+            mode="w",
+            samplerate=fs,
+            channels=channels,
+            subtype="FLOAT"
+        )
+
+        def callback(indata, frames, time, status):
+            file.write(indata)
+
+        stream = sd.InputStream(
+            samplerate=fs,
+            channels=channels,
+            callback=callback
+        )
+
+        stream.start()
+
 root = tk.Tk()
 root.title("TTS Microphone")
-root.geometry("500x300")
+root.geometry("500x500")
 
 # Text input
 tk.Label(root, text="Enter text:").pack(pady=10)
@@ -76,6 +140,8 @@ language_box.set("en")
 language_box.pack(pady=10)
 
 # Submit
+tk.Button(root, text="Record", command=record_audio).pack(pady=10)
+root.bind("<F6>", lambda e: record_audio())
 tk.Button(root, text="Enter", command=button_click).pack(pady=10)
 root.bind("<Return>", lambda e: button_click())
 
