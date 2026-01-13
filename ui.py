@@ -20,6 +20,8 @@ model = WhisperModel(model_size, device="cpu", compute_type="int8")
 recording = False
 currently_recording = False
 text : str = None
+stream = None
+file = None
 
 def button_click():
     text = entry_box.get()
@@ -45,43 +47,54 @@ def play_sound(path):
     play(audio)
 
 def record_audio():
-    global recording, text, stream, file, currently_recording
-    print("running")
+    global recording, currently_recording, stream, file, text
 
     if currently_recording:
-        return
-    
+        return 
+
     if recording:
+        record_btn.config(text="Record")
         entry_box.delete(0, tk.END)
         entry_box.insert(0, "Processing...")
         entry_box.update()
+
         recording = False
-        currently_recording = False
+        currently_recording = True
 
-        stream.stop()
-        stream.close()
-        file.close()
+        try:
+            if stream:
+                stream.stop()
+                stream.close()
+            if file:
+                file.close()
+            try:
+                segments, info = model.transcribe("input.wav", beam_size=5)
+                text = "".join(s.text for s in segments)
+                entry_box.delete(0, tk.END)
+                entry_box.insert(0, text)
+                button_click()
+            except Exception as e:
+                entry_box.delete(0, tk.END)
+                entry_box.insert(0, f"Transcribe error: {e}")
 
-        segments, info = model.transcribe("input.wav", beam_size=5)
-        text = "".join(s.text for s in segments)
+        finally:
+            silent_data = np.zeros((int(fs * 5), channels), dtype=np.float32)
+            sf.write("input.wav", silent_data, samplerate=fs)
+            currently_recording = False
+            stream = None
+            file = None
 
-        entry_box.delete(0, tk.END)
-        entry_box.insert(0, text)
-        button_click()
-
-        silent_data = np.zeros((int(fs * 5), channels), dtype=np.float32)
-        sf.write("input.wav", silent_data, samplerate=fs)
-        record_btn.config(text="Record")
     else:
-
         record_btn.config(text="Stop Record")
+        entry_box.delete(0, tk.END)
+        entry_box.insert(0, "Recording...")
+        entry_box.update()
 
         sound_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "new-notification-010-352755.mp3")
         threading.Thread(target=play_sound, args=(sound_path,), daemon=True).start()
-        recording = True    
-        currently_recording = False 
-        entry_box.delete(0, tk.END)
-        entry_box.insert(0, "Recording...")
+
+        recording = True
+        currently_recording = False
 
         file = sf.SoundFile(
             "input.wav",
@@ -92,30 +105,36 @@ def record_audio():
         )
 
         def callback(indata, frames, time, status):
-            file.write(indata)
+            if recording:
+                file.write(indata)
 
         stream = sd.InputStream(
             samplerate=fs,
             channels=channels,
             callback=callback
         )
-
         stream.start()
+
 
 def cancel_record():
     global recording, currently_recording, stream, file
-    if recording:
+    if recording or currently_recording:
         recording = False
         currently_recording = False
+
         if stream:
             stream.stop()
             stream.close()
         if file:
             file.close()
-        entry_box.delete(0, tk.END)
 
         silent_data = np.zeros((int(fs * 5), channels), dtype=np.float32)
         sf.write("input.wav", silent_data, samplerate=fs)
+
+        stream = None
+        file = None
+
+        entry_box.delete(0, tk.END)
 
 root = tk.Tk()
 root.title("TTS Microphone")
