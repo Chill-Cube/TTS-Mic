@@ -9,11 +9,12 @@ import sounddevice as sd
 import soundfile as sf
 import os
 import threading
+import numpy as np
 
 fs = 44100
 channels = 1
 
-model_size = "medium"
+model_size = "small"
 
 model = WhisperModel(model_size, device="cpu", compute_type="int8")
 recording = False
@@ -60,6 +61,9 @@ def record_audio():
         entry_box.delete(0, tk.END)
         entry_box.insert(0, text)
         button_click()
+
+        silent_data = np.zeros((int(fs * 5), channels), dtype=np.float32)
+        sf.write("input.wav", silent_data, samplerate=fs)
     else:
         sound_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "new-notification-010-352755.mp3")
         threading.Thread(target=play_sound, args=(sound_path,), daemon=True).start()
