@@ -140,25 +140,25 @@ main_frame = tk.Frame(root, padx=20, pady=20)
 main_frame.pack(fill="both", expand=True)
 
 # Text input
-tk.Label(main_frame, text="Enter text:", font=("Arial", 12)).pack(pady=(0,5))
-entry_box = tk.Entry(main_frame, width=45, font=("Arial", 12))
+tk.Label(main_frame, text="Enter text:", font=("Helvetica", 12)).pack(pady=(0,5))
+entry_box = tk.Entry(main_frame, width=45, font=("Helvetica", 12))
 entry_box.pack(pady=(0,15))
 
 # Speed and Pitch frame
 sp_frame = tk.Frame(main_frame)
 sp_frame.pack(pady=(0,15))
 
-tk.Label(sp_frame, text="Speed:", font=("Arial", 10)).grid(row=0, column=0, padx=5)
+tk.Label(sp_frame, text="Speed:", font=("Helvetica", 10)).grid(row=0, column=0, padx=5)
 speed_spinbox = tk.Spinbox(sp_frame, from_=0.1, to=3.0, increment=0.1, width=5, textvariable=speed_var)
 speed_spinbox.grid(row=0, column=1, padx=5)
 
-tk.Label(sp_frame, text="Pitch:", font=("Arial", 10)).grid(row=0, column=2, padx=5)
+tk.Label(sp_frame, text="Pitch:", font=("Helvetica", 10)).grid(row=0, column=2, padx=5)
 pitch_spinbox = tk.Spinbox(sp_frame, from_=-100, to=100, increment=1, width=5, textvariable=pitch_var)
 pitch_spinbox.grid(row=0, column=3, padx=5)
 
 # Language selection
-tk.Label(main_frame, text="Language:", font=("Arial", 12)).pack(pady=(0,5))
-language_box = ttk.Combobox(main_frame, values=options, state="readonly", width=20, font=("Arial", 10))
+tk.Label(main_frame, text="Language:", font=("Helvetica", 12)).pack(pady=(0,5))
+language_box = ttk.Combobox(main_frame, values=options, state="readonly", width=20, font=("Helvetica", 10))
 language_box.set("en")
 language_box.pack(pady=(0,15))
 
@@ -169,7 +169,7 @@ btn_frame.pack(pady=(10,0))
 record_btn = tk.Button(btn_frame, text="Record", width=12, command=record_audio)
 record_btn.grid(row=0, column=0, padx=5)
 
-cancel_btn = tk.Button(btn_frame, text="Cancel", width=12, command=cancel_record)
+cancel_btn = tk.Button(btn_frame, text="Cancel Record", width=12, command=cancel_record)
 cancel_btn.grid(row=0, column=1, padx=5)
 
 enter_btn = tk.Button(btn_frame, text="Enter", width=12, command=button_click)
