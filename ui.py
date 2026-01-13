@@ -52,10 +52,11 @@ def record_audio():
         return
     
     if recording:
+        entry_box.delete(0, tk.END)
+        entry_box.insert(0, "Processing...")
+        entry_box.update()
         recording = False
         currently_recording = False
-        entry_box.delete(0, tk.END)
-        entry_box.insert(0, "Wait a moment...")
 
         stream.stop()
         stream.close()
@@ -70,7 +71,11 @@ def record_audio():
 
         silent_data = np.zeros((int(fs * 5), channels), dtype=np.float32)
         sf.write("input.wav", silent_data, samplerate=fs)
+        record_btn.config(text="Record")
     else:
+
+        record_btn.config(text="Stop Record")
+
         sound_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "new-notification-010-352755.mp3")
         threading.Thread(target=play_sound, args=(sound_path,), daemon=True).start()
         recording = True    
