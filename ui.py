@@ -18,6 +18,7 @@ model_size = "small"
 
 model = WhisperModel(model_size, device="cpu", compute_type="int8")
 recording = False
+currently_recording = False
 text : str = None
 
 def button_click():
@@ -44,10 +45,15 @@ def play_sound(path):
     play(audio)
 
 def record_audio():
-    global recording, text, stream, file
+    global recording, text, stream, file, currently_recording
     print("running")
+
+    if currently_recording:
+        return
+    
     if recording:
         recording = False
+        currently_recording = False
         entry_box.delete(0, tk.END)
         entry_box.insert(0, "Wait a moment...")
 
@@ -67,7 +73,8 @@ def record_audio():
     else:
         sound_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "new-notification-010-352755.mp3")
         threading.Thread(target=play_sound, args=(sound_path,), daemon=True).start()
-        recording = True     
+        recording = True    
+        currently_recording = False 
         entry_box.delete(0, tk.END)
         entry_box.insert(0, "Recording...")
 
@@ -90,45 +97,34 @@ def record_audio():
 
         stream.start()
 
+def cancel_record():
+    global recording, currently_recording, stream, file
+    if recording:
+        recording = False
+        currently_recording = False
+        if stream:
+            stream.stop()
+            stream.close()
+        if file:
+            file.close()
+        entry_box.delete(0, tk.END)
+
+        silent_data = np.zeros((int(fs * 5), channels), dtype=np.float32)
+        sf.write("input.wav", silent_data, samplerate=fs)
+
 root = tk.Tk()
 root.title("TTS Microphone")
-root.geometry("500x500")
+root.geometry("500x250")
+root.resizable(False, False)
 
-# Text input
-tk.Label(root, text="Enter text:").pack(pady=10)
-entry_box = tk.Entry(root, width=60)
-entry_box.pack(pady=5)
+main_frame = tk.Frame(root, padx=20, pady=20)
+main_frame.pack(expand=True)
 
-# Speed control
-tk.Label(root, text="Speed:").pack(pady=2)
-
+# Speed and Pitch variables
 speed_var = tk.DoubleVar(value=1.0)
-speed_spinbox = tk.Spinbox(
-    root,
-    from_=0.1,
-    to=3.0,
-    increment=0.1,
-    textvariable=speed_var
-)
-speed_spinbox.pack(pady=10)
-
-
-# Pitch control
-tk.Label(root, text="Pitch:").pack(pady=2)
-
 pitch_var = tk.IntVar(value=0)
-pitch_spinbox = tk.Spinbox(
-    root,
-    from_=-100,
-    to=100,
-    increment=1,
-    textvariable=pitch_var
-)
-pitch_spinbox.pack(pady=10)
 
-# Language dropdown
-tk.Label(root, text="Language:").pack(pady=2)
-
+# Language options
 options = (
     "af", "sq", "am", "ar", "hy", "az", "bn", "bs", "bg", "ca", "zh-CN", "zh-TW",
     "hr", "cs", "da", "nl", "en", "en-au", "en-uk", "en-us", "eo", "et", "tl", "fi",
@@ -139,14 +135,49 @@ options = (
     "sk", "sl", "so", "es", "es-us", "su", "sw", "sv", "tg", "ta", "te", "th", "tr", "uk"
 )
 
-language_box = ttk.Combobox(root, values=options, state="readonly")
-language_box.set("en")
-language_box.pack(pady=10)
+# Main frame
+main_frame = tk.Frame(root, padx=20, pady=20)
+main_frame.pack(fill="both", expand=True)
 
-# Submit
-tk.Button(root, text="Record", command=record_audio).pack(pady=10)
+# Text input
+tk.Label(main_frame, text="Enter text:", font=("Arial", 12)).pack(pady=(0,5))
+entry_box = tk.Entry(main_frame, width=45, font=("Arial", 12))
+entry_box.pack(pady=(0,15))
+
+# Speed and Pitch frame
+sp_frame = tk.Frame(main_frame)
+sp_frame.pack(pady=(0,15))
+
+tk.Label(sp_frame, text="Speed:", font=("Arial", 10)).grid(row=0, column=0, padx=5)
+speed_spinbox = tk.Spinbox(sp_frame, from_=0.1, to=3.0, increment=0.1, width=5, textvariable=speed_var)
+speed_spinbox.grid(row=0, column=1, padx=5)
+
+tk.Label(sp_frame, text="Pitch:", font=("Arial", 10)).grid(row=0, column=2, padx=5)
+pitch_spinbox = tk.Spinbox(sp_frame, from_=-100, to=100, increment=1, width=5, textvariable=pitch_var)
+pitch_spinbox.grid(row=0, column=3, padx=5)
+
+# Language selection
+tk.Label(main_frame, text="Language:", font=("Arial", 12)).pack(pady=(0,5))
+language_box = ttk.Combobox(main_frame, values=options, state="readonly", width=20, font=("Arial", 10))
+language_box.set("en")
+language_box.pack(pady=(0,15))
+
+# Buttons frame
+btn_frame = tk.Frame(main_frame)
+btn_frame.pack(pady=(10,0))
+
+record_btn = tk.Button(btn_frame, text="Record", width=12, command=record_audio)
+record_btn.grid(row=0, column=0, padx=5)
+
+cancel_btn = tk.Button(btn_frame, text="Cancel", width=12, command=cancel_record)
+cancel_btn.grid(row=0, column=1, padx=5)
+
+enter_btn = tk.Button(btn_frame, text="Enter", width=12, command=button_click)
+enter_btn.grid(row=0, column=2, padx=5)
+
+# Key bindings
 root.bind("<F6>", lambda e: record_audio())
-tk.Button(root, text="Enter", command=button_click).pack(pady=10)
+root.bind("<F7>", lambda e: cancel_record())
 root.bind("<Return>", lambda e: button_click())
 
 root.mainloop()
