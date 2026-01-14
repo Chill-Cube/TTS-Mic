@@ -53,6 +53,9 @@ def record_audio():
         return 
 
     if recording:
+        sound_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "done.mp3")
+        threading.Thread(target=play_sound, args=(sound_path,), daemon=True).start()
+        
         record_btn.config(text="Record")
         entry_box.delete(0, tk.END)
         entry_box.insert(0, "Processing...")
